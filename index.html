@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Buscar puntos kilométricos - ArcGIS</title>
+    <style>
+      :root {
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial;
+      }
+      body {
+        max-width: 900px;
+        margin: 28px auto;
+        padding: 20px;
+        background: #f7f8fb;
+        color: #111;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin: 0 0 12px;
+      }
+      form {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr 140px;
+        align-items: end;
+      }
+      label {
+        font-size: 0.85rem;
+      }
+      input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d6d9e6;
+        border-radius: 8px;
+        font-size: 1rem;
+      }
+      button {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 0;
+        background: #0b74de;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .controls {
+        grid-column: 1/-1;
+        display: flex;
+        gap: 10px;
+      }
+      .results {
+        margin-top: 18px;
+        background: white;
+        padding: 14px;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(12, 20, 40, 0.06);
+      }
+      .item {
+        padding: 10px;
+        border-bottom: 1px solid #eef0f6;
+      }
+      .item:last-child {
+        border-bottom: 0;
+      }
+      .meta {
+        font-size: 0.9rem;
+        color: #3b3f4a;
+      }
+      .small {
+        font-size: 0.85rem;
+        color: #6b7280;
+      }
+      .loading {
+        opacity: 0.7;
+        font-style: italic;
+      }
+      .link {
+        color: #0b74de;
+        text-decoration: none;
+      }
+      @media (max-width: 600px) {
+        form {
+          grid-template-columns: 1fr;
+        }
+        .controls {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Buscar puntos kilométricos (ArcGIS)</h1>
+    <p class="small">
+      Introduce el nombre de la carretera (ej. <code>N-631</code> o
+      <code>A-1</code>) y el punto km (o parte de él). Los resultados se
+      obtienen del servicio <em>FeatureServer</em>.
+    </p>
+
+    <form id="searchForm">
+      <div>
+        <label for="carretera">Carretera</label>
+        <input
+          id="carretera"
+          name="carretera"
+          type="text"
+          placeholder="Ej. N-631"
+          required
+        />
+      </div>
+
+      <div>
+        <label for="pk">Punto km</label>
+        <input
+          id="pk"
+          name="pk"
+          type="text"
+          placeholder="Ej. 1 o 12.5 (puedes dejar vacío)"
+        />
+      </div>
+
+      <div class="controls">
+        <button id="buscar" type="submit">Buscar</button>
+        <button id="limpiar" type="button">Limpiar</button>
+        <div style="margin-left: auto; align-self: center" id="status"></div>
+      </div>
+    </form>
+
+    <div id="results" class="results" hidden>
+      <strong id="count"></strong>
+      <div id="list"></div>
+    </div>
+
+    <script>
+      const SERVICE_URL =
+        "https://services1.arcgis.com/nCKYwcSONQTkPA4K/ArcGIS/rest/services/Puntos_kilometricos_Espana/FeatureServer/0/query";
+
+      const form = document.getElementById("searchForm");
+      const carreteraEl = document.getElementById("carretera");
+      const pkEl = document.getElementById("pk");
+      const statusEl = document.getElementById("status");
+      const resultsEl = document.getElementById("results");
+      const listEl = document.getElementById("list");
+      const countEl = document.getElementById("count");
+      const limpiarBtn = document.getElementById("limpiar");
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function buildWhere(carretera, pk) {
+        const safeCar = carretera.trim().toLowerCase().replace(/'/g, "''");
+        let where = `LOWER(nombre) LIKE '%${safeCar}%'`;
+        if (pk && pk.trim() !== "") {
+          const safePk = pk.trim().toLowerCase().replace(/'/g, "''");
+          where += ` AND LOWER(numero) LIKE '%${safePk}%'`;
+        }
+        return where;
+      }
+
+      async function fetchResults(carretera, pk) {
+        const params = {
+          where: buildWhere(carretera, pk),
+          outFields: "*",
+          returnGeometry: "true",
+          outSR: "4326",
+          f: "json",
+          orderByFields: "numero ASC",
+        };
+
+        const qs = Object.keys(params)
+          .map(
+            (k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`
+          )
+          .join("&");
+        const url = SERVICE_URL + "?" + qs;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Error en la petición: " + res.status);
+        return await res.json();
+      }
+
+      async function buscar(e) {
+        if (e) e.preventDefault();
+        const carretera = carreteraEl.value;
+        const pk = pkEl.value;
+        if (!carretera.trim()) {
+          carreteraEl.focus();
+          return;
+        }
+
+        resultsEl.hidden = true;
+        listEl.innerHTML = "";
+        countEl.textContent = "";
+        setStatus("Buscando...");
+
+        try {
+          let data = await fetchResults(carretera, pk);
+
+          // Si no hay resultados, intenta automáticamente con un guion insertado entre letras y números
+          if (
+            (!data.features || data.features.length === 0) &&
+            /[a-zA-Z]+\d+/.test(carretera)
+          ) {
+            const modCarretera = carretera.replace(/([a-zA-Z]+)(\d+)/, "$1-$2");
+            setStatus(
+              `Sin resultados. Reintentando con guion: ${modCarretera}...`
+            );
+            data = await fetchResults(modCarretera, pk);
+          }
+
+          if (!data.features || data.features.length === 0) {
+            setStatus("No se encontraron resultados.");
+            resultsEl.hidden = true;
+            return;
+          }
+
+          setStatus("");
+          resultsEl.hidden = false;
+          countEl.textContent = `${data.features.length} resultado(s)`;
+
+          listEl.innerHTML = data.features
+            .map((f) => {
+              const attrs = f.attributes || {};
+              const geom = f.geometry || {};
+              const lat =
+                geom.y !== undefined
+                  ? geom.y
+                  : geom.coordinates
+                  ? geom.coordinates[1]
+                  : "—";
+              const lon =
+                geom.x !== undefined
+                  ? geom.x
+                  : geom.coordinates
+                  ? geom.coordinates[0]
+                  : "—";
+
+              const nombre = attrs.nombre ?? "—";
+              const numero = attrs.numero ?? "—";
+              const sentido = attrs.sentidopkd ?? "—";
+              const fuente = attrs.fuente ?? "—";
+
+              const gmapsHref =
+                lat !== "—" && lon !== "—"
+                  ? `https://www.google.com/maps?q=${lat},${lon}`
+                  : "#";
+
+              return `
+      <div class="item">
+        <div>
+          <strong>${escapeHtml(nombre)}</strong> — 
+          PK: <strong>${escapeHtml(numero)}</strong>
+        </div>
+        <div class="meta">
+          Sentido: ${escapeHtml(sentido)} — 
+          Fuente: ${escapeHtml(fuente)}
+        </div>
+        <div class="meta">
+          Coordenadas: ${lat}, ${lon} — 
+          <a class="link" href="${gmapsHref}" target="_blank">ver en Google Maps</a>
+        </div>
+      </div>
+    `;
+            })
+            .join("");
+        } catch (err) {
+          console.error(err);
+          setStatus("Error: " + err.message);
+        }
+      }
+
+      function escapeHtml(s) {
+        if (s == null) return "";
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          }[c];
+        });
+      }
+
+      form.addEventListener("submit", buscar);
+      limpiarBtn.addEventListener("click", () => {
+        carreteraEl.value = "";
+        pkEl.value = "";
+        listEl.innerHTML = "";
+        resultsEl.hidden = true;
+        setStatus("");
+        carreteraEl.focus();
+      });
+    </script>
+  </body>
+</html>
