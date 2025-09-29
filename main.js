@@ -129,14 +129,18 @@ async function buscar(e) {
   </div>
   <div class="meta mb-1">
     <span class="municipio fw-bold text-success">Cargando municipio/provincia...</span> — 
-    <span>Sentido: </span> <span class="sentido text-warning">${escapeHtml(sentido)}</span> — 
+    <span>Sentido: </span> <span class="sentido text-danger">${escapeHtml(sentido)}</span> — 
     <span class="fuente text-secondary">Fuente: ${escapeHtml(fuente)}</span>
   </div>
   <small>
   <div class="meta mb-1">
-    <span class="text-muted">Coordenadas: ${lat}, ${lon}</span> — 
-    <a class="link-primary" href="${gmapsHref}" target="_blank">ver en Google Maps</a>
-  </div>
+  <span class="text-muted">
+    Coordenadas: ${lat}, ${lon} 
+    <img src="./google-maps.png" alt="Google Maps" style="width:16px; height:16px; vertical-align:middle; margin-left:4px;">
+  </span> — 
+  <a class="link-primary fw-bold" href="${gmapsHref}" target="_blank">ver en Google Maps</a>
+</div>
+
   </small>
   <br>
 `;
