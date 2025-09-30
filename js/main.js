@@ -46,7 +46,12 @@ async function fetchResults(carretera, pk) {
 
 // Obtener municipio y provincia a partir de coordenadas
 async function getMunicipioProvincia(lat, lon, maxRetries = 5, delayMs = 500) {
-  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&addressdetails=1`;
+
+  //const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&addressdetails=1`;
+
+  // Para producción (Nginx proxy) evitar CORS
+  const url = `/osm-reverse/?lat=${lat}&lon=${lon}&format=json&zoom=10&addressdetails=1`;
+
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
