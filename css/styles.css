@@ -1,3 +1,4 @@
+/* Fondo fijo (igual que antes) */
 .background {
     position: fixed;
     top: 0;
@@ -11,10 +12,60 @@
     /* detrás de todo */
 }
 
-/* Fondo semitransparente del contenedor */
+/* Contenedor semitransparente en modo oscuro */
 .overlay-container {
-    background-color: rgba(255, 255, 255, 0.94);
-    /* blanco con 50% de opacidad */
+    background-color: rgba(0, 0, 0, 0.75);
+    /* negro con 75% opacidad */
+    color: #f0f0f0;
+    /* texto claro */
     padding: 2rem;
     border-radius: 0.5rem;
+}
+
+/* Titulos y texto */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+label,
+code {
+    color: #f0f0f0;
+}
+
+/* Inputs y botones con Bootstrap oscuro */
+.form-control {
+    background-color: #333;
+    color: #f0f0f0;
+    border: 1px solid #555;
+}
+
+.form-control::placeholder {
+    color: #bbb;
+}
+
+.btn-primary {
+    background-color: #1a73e8;
+    border-color: #1a73e8;
+}
+
+.btn-secondary {
+    background-color: #555;
+    border-color: #555;
+    color: #fff;
+}
+
+/* Resultados */
+#results {
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #f0f0f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.logo-h1 {
+    height: 5em;
+    /* tamaño del logo */
 }
