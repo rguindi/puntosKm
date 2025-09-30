@@ -1,26 +1,25 @@
 /* Fondo fijo (igual que antes) */
 .background {
-    position: fixed;
+    position: absolute;
+    /* mejor que fixed en móviles */
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     background-image: url('../img/fondo.jpg');
     background-size: cover;
     background-position: center;
     z-index: -1;
-    /* detrás de todo */
 }
+
 
 /* Contenedor semitransparente en modo oscuro */
 .overlay-container {
-    background-color: rgba(0, 0, 0, 0.75);
-    /* negro con 75% opacidad */
+    background-color: rgba(0, 0, 0, 0.65);
+    /* más transparente */
     color: #f0f0f0;
-    /* texto claro */
-    padding: 2rem;
-    border-radius: 0.5rem;
 }
+
 
 /* Titulos y texto */
 h1,
